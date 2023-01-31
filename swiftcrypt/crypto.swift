@@ -12,39 +12,38 @@ struct AES {
 
     // MARK: - Value
     // MARK: Private
-    private let key: Data
-    private let iv: Data
+    private let key: [UInt8]
+    private let iv: [UInt8]
+
 
 
     // MARK: - Initialzier
-    init?(key: String, iv: String) {
-        guard key.count == kCCKeySizeAES128 || key.count == kCCKeySizeAES256, let keyData = key.data(using: .utf8) else {
+    init?(key: [UInt8], iv: [UInt8]) {
+        guard key.count == kCCKeySizeAES128 || key.count == kCCKeySizeAES256 else {
             debugPrint("Error: Failed to set a key.")
             return nil
         }
 
-        guard iv.count == kCCBlockSizeAES128, let ivData = iv.data(using: .utf8) else {
+        guard iv.count == kCCBlockSizeAES128 else {
             debugPrint("Error: Failed to set an initial vector.")
             return nil
         }
 
-
-        self.key = keyData
-        self.iv  = ivData
+        self.key = key
+        self.iv = iv
     }
 
 
     // MARK: - Function
     // MARK: Public
-    func encrypt(string: String) -> Data? {
-        return crypt(data: string.data(using: .utf8), option: CCOperation(kCCEncrypt))
+    func encrypt(data: Data) -> Data? {
+        return crypt(data: data, option: CCOperation(kCCEncrypt))
     }
 
-    func decrypt(data: Data?) -> String? {
-        guard let decryptedData = crypt(data: data, option: CCOperation(kCCDecrypt)) else { return nil }
-        return String(bytes: decryptedData, encoding: .utf8)
+    func decrypt(data: Data?) -> Data? {
+        return crypt(data: data, option: CCOperation(kCCDecrypt))
     }
-
+    
     func crypt(data: Data?, option: CCOperation) -> Data? {
         guard let data = data else { return nil }
 
